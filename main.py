@@ -1,37 +1,41 @@
-from memory import Memory
+from cpu import Cpu, CpuState
 from cache import Cache
+from memory import Memory
 
 block_size = 16
+line_count = 4
+memory_traces_file = 'memory_traces/man_cpu1'
 
 memory = Memory(block_size)
-cache = Cache(line_count = 4, block_size = block_size, memory = memory)
+cache = Cache(line_count, block_size, memory)
+cpu = Cpu(1, memory_traces_file, cache, memory)
 
-cache.read(16)
-# cache.print()
+def handle_user_input():
+    user_input = input(">").strip()
+    if user_input == "":
+        # user pressed enter -> execute next cycle
+        return
+    else:
+        if user_input.lower() == "exit":
+            print("Exiting program.")
+            exit()
+        elif user_input.lower() == "cache":
+            cache.print()
+        elif user_input.lower() == "mem":
+            memory.print()
+        else:
+            print("Unknown command")
+    handle_user_input()
 
-cache.read(36)
-# cache.print()
+# 
+# Main Program Loop
+# 
+while not cpu.state == CpuState.finished:
+    handle_user_input()
+    cpu.handle_next_instruction()
 
-cache.read(38)
-# cache.print()
+    # cpu2.handle_next_instruction()
+    # handle_user_input()
 
-cache.read(32)
-# cache.print()
-cache.read(120)
-# cache.print()
-
-cache.write(32, 0xF4)
-# cache.print()
-
-cache.write(0xF310309, 0x44)
-# cache.print()
-
-cache.read(17)
-cache.print()
-
-
-# cache.write(0xFFFF, 0x42)
-
-#memory.write_byte(29, 0xFF)
-#memory.write_byte(0xF4, 0xFF)
-
+print("All cores finished!")
+exit()

@@ -4,7 +4,7 @@ class Memory:
 
     """
     Class representing main memory. A dictionary stores memory blocks as byte arrays.
-    It stores only blocks that have been accessed. All blocks are randomly initialized
+    It stores only blocks that have been accessed. New blocks are initialized randomly
     """
 
     def __init__(self, block_size):
@@ -18,7 +18,6 @@ class Memory:
         """read block from memory that contains the address"""
         
         block_nr = self._get_block_nr(address)
-        print(f"reading memory block: {block_nr:#018x}")
 
         if block_nr not in self._data:
             # if block is accessed the first time, initialize randomly
@@ -28,7 +27,6 @@ class Memory:
     def write_block(self, address, data):
         """write block to memory that contains the address"""
         
-        print(f"writing to memory block: {self._get_block_nr(address):#018x}")
         self._data[self._get_block_nr(address)] = data
 
     def _initialize_block(self, block_nr):
