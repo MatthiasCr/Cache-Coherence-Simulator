@@ -115,7 +115,7 @@ class Cache:
 
     def print(self):
         """overengineered pretty-printer for the cache lines"""
-        # calculate number of digits needed to print som values
+        # calculate number of digits needed to print dynamic length values
         data_len = self._block_size * 2 + (self._block_size - 1)
         use_len = math.ceil(math.log(self._line_count, 16))     # LRU used number printed in hex
         nr_len = math.ceil(math.log(self._line_count, 10))      # number of line printed in decimal
