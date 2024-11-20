@@ -18,7 +18,7 @@ class Memory:
         """read block from memory that contains the address"""
         
         block_nr = self._get_block_nr(address)
-        print(f"reading memory from address: {block_nr:#018x} to {block_nr + self._block_size - 1:#018x}")
+        print(f"reading memory block: {block_nr:#018x}")
 
         if block_nr not in self._data:
             # if block is accessed the first time, initialize randomly
@@ -44,7 +44,6 @@ class Memory:
 
     def print(self):
         print(f"\nMemory ({len(self._data) * self._block_size} bytes in {len(self._data)} blocks):")
-
         for key, value in sorted(self._data.items()):
             bytes_string = ' '.join(f"{byte:02x}" for byte in value)
             print(f"{key:018x}: {bytes_string}")
