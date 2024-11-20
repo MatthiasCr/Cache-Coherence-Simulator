@@ -1,10 +1,15 @@
 import random
 
 class Memory:
+
+    """
+    Class representing main memory. A dictionary stores memory blocks as byte arrays.
+    """
+
     def __init__(self, block_size):
         self._block_size = block_size
 
-        # Dictionary to store memory blocks. Key is the starting address, value is a byte array
+        # Dictionary to store memory blocks. Key is the block number (address where the block starts), value is a byte array
         self._data = {}
 
     def read_block(self, address):
@@ -21,22 +26,23 @@ class Memory:
     
     def write_block(self, address, data):
         """write block to memory that contains the address"""
+        print(f"writing to memory block: {self._get_block(address):#018x}")
         self._data[self._get_block(address)] = data
 
     def _initialize_block(self, start_address):
         """initializes memory block starting from start_address with random bytes"""
-        values = []
+        values = [0] * self._block_size
         for i in range(0, self._block_size):
-            values.append(random.randint(0, 0xFF))
+            values[i] = random.randint(0, 0xFF)
         
         self._data[start_address] = values
 
     def _get_block(self, address):
-        """maps address to it's block and returns the block's start address"""
+        """returns the start address from the block that contains the address"""
         return address - (address % self._block_size)
 
     def print(self):
-        print(f"\nMemory holds ({len(self._data) * self._block_size} addresses in {len(self._data)} blocks):")
+        print(f"\nMemory ({len(self._data) * self._block_size} bytes in {len(self._data)} blocks):")
 
         for key, value in sorted(self._data.items()):
             bytes_string = ' '.join(f"{byte:02x}" for byte in value)
@@ -62,10 +68,3 @@ class Memory:
         block = self._data[start_address]
         block[address % self._block_size] = value
         self._data[start_address] = block
-
-
-    def is_valid_address(self, address):
-        """checks if address is 64 bit integer"""
-        if not isinstance(address, int):
-            return False
-        return 0 <= address < (1 << 64)
