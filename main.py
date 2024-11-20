@@ -8,7 +8,6 @@ cache = Cache(line_count = 16, block_size = block_size, memory = memory)
 
 cache.print()
 
-
 cache.read(16)
 cache.read(36)
 cache.read(38)
