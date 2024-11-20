@@ -35,7 +35,7 @@ class Cpu:
                     return
                 elif self._waiting_cycles == 0:
                     # finally, the waiting is done :)
-
+                    # now do the callback to load the data into cache and read/write it
                     self._waiting_callback()
                     print(f"CPU{self._number}: Memory access completed")
                     self.state = CpuState.ready

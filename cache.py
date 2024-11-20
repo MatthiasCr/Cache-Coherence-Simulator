@@ -64,6 +64,7 @@ class Cache:
         cacheline.data[offset] = value
         cacheline.dirty = True
         self._updated_use_bits(cacheline)
+        print(f"Writing {value:#02x} to {address:018x}")
         return value
         
     
@@ -77,11 +78,11 @@ class Cache:
                 target_line = line
         
         if not target_line.dirty and target_line.valid:
-            print(f"Drop block from cache {target_line.block:018x}")
+            print(f"Drop from cache: block {target_line.block:018x}")
 
         # write-back currently stored block if dirty
         if target_line.dirty and target_line.valid:
-            print(f"Write-Back and drop from cache {target_line.block:018x}")
+            print(f"Write-Back and drop from cache: block {target_line.block:018x}")
             self.memory.write_block(target_line.block, target_line.data)
 
         # do the load
@@ -90,7 +91,7 @@ class Cache:
         target_line.data = data
         target_line.valid = True
         self._updated_use_bits(target_line)
-        print(f"Loaded new cache line for address {address:018x}")
+        print(f"Loaded into cache: {address:018x}")
         return
     
     def _updated_use_bits(self, line :Line):
