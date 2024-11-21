@@ -20,28 +20,24 @@ class Cache:
     """
 
     def __init__(self, line_count, block_size, memory :Memory):
-        self.memory = memory 
+        self._memory = memory 
         self._line_count = line_count                   
         self._block_size = block_size
         self._lines = [Line(number = i, line_size = block_size) for i in range(line_count)]
+
 
     def read(self, address):
         offset = address % self._block_size
         block = address - offset
 
-        cacheline = None
         for line in self._lines:
             if line.block == block and line.valid:
                 # READ HIT!
-                cacheline = line
-                break
-        
-        if cacheline is None:
-            # READ MISS!
-            return None
-
-        self._updated_use_bits(cacheline)
-        return cacheline.data[offset]
+                self._updated_use_bits(line)
+                return line.data[offset]
+        # READ MISS!
+        return None
+    
 
     def write(self, address, value):
         """if write-hit returns written value. if write-miss returns None"""
@@ -49,27 +45,20 @@ class Cache:
         offset = address % self._block_size
         block = address - offset
         
-        cacheline = None
         for line in self._lines:
             if line.block == block and line.valid:
                 # WRITE HIT
-                cacheline = line
-                break
-        
-        if not cacheline:
-            # WRITE MISS
-            return None
-
-        # write byte to cache
-        cacheline.data[offset] = value
-        cacheline.dirty = True
-        self._updated_use_bits(cacheline)
-        print(f"Writing {value:#02x} to {address:018x}")
-        return value
+                line.data[offset] = value
+                line.dirty = True
+                self._updated_use_bits(line)
+                print(f"Writing {value:#02x} to {address:018x}")
+                return value
+        # WRITE MISS
+        return None
         
     
-    def load(self, address):
-        """stores data in cache line"""
+    def load_from_memory(self, address):
+        """loads block that contains the address from memory and stores in cache"""
 
         # choose line to replace (LRU)
         target_line = self._lines[0]
@@ -77,21 +66,23 @@ class Cache:
             if line.use < target_line.use:
                 target_line = line
         
-        if not target_line.dirty and target_line.valid:
-            print(f"Drop from cache: block {target_line.block:018x}")
 
         # write-back currently stored block if dirty
         if target_line.dirty and target_line.valid:
-            print(f"Write-Back and drop from cache: block {target_line.block:018x}")
-            self.memory.write_block(target_line.block, target_line.data)
+            print(f"Writing-Back and dropping from cache: block {target_line.block:018x}")
+            self._memory.write_block(target_line.block, target_line.data)
+        
+        elif not target_line.dirty and target_line.valid:
+            print(f"Dropping from cache: block {target_line.block:018x}")
 
         # do the load
-        data = self.memory.read_block(address)
+        print(f"Loading into cache: {address:018x}")
+        data = self._memory.read_block(address)
         target_line.block = address - (address % self._block_size)
         target_line.data = data
         target_line.valid = True
+        target_line.dirty = False
         self._updated_use_bits(target_line)
-        print(f"Loaded into cache: {address:018x}")
         return
     
     def _updated_use_bits(self, line :Line):
