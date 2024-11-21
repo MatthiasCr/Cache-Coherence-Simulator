@@ -19,7 +19,8 @@ class Cache:
     Class representing a cache
     """
 
-    def __init__(self, line_count, block_size, memory :Memory):
+    def __init__(self, number, line_count, block_size, memory :Memory):
+        self._number = number               # used for printing the logs
         self._memory = memory 
         self._line_count = line_count                   
         self._block_size = block_size
@@ -51,7 +52,7 @@ class Cache:
                 line.data[offset] = value
                 line.dirty = True
                 self._updated_use_bits(line)
-                print(f"Writing {value:#02x} to {address:018x}")
+                print(f"Cache{self._number} Writing {value:#02x} to {address:018x}")
                 return value
         # WRITE MISS
         return None
@@ -69,14 +70,14 @@ class Cache:
 
         # write-back currently stored block if dirty
         if target_line.dirty and target_line.valid:
-            print(f"Writing-Back and dropping from cache: block {target_line.block:018x}")
+            print(f"Cache{self._number} Writing-Back and dropping from cache: block {target_line.block:018x}")
             self._memory.write_block(target_line.block, target_line.data)
         
         elif not target_line.dirty and target_line.valid:
-            print(f"Dropping from cache: block {target_line.block:018x}")
+            print(f"Cache{self._number} Dropping from cache: block {target_line.block:018x}")
 
         # do the load
-        print(f"Loading into cache: {address:018x}")
+        print(f"Cache{self._number} Loading into cache: {address:018x}")
         data = self._memory.read_block(address)
         target_line.block = address - (address % self._block_size)
         target_line.data = data

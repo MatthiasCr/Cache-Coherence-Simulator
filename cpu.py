@@ -45,13 +45,20 @@ class Cpu:
 
             case CpuState.ready:
                 # read next instruction   
+                
                 line = self._traces_file.readline()
+
                 if not line:
                     self.state = CpuState.finished
                     return
                 
+                if line.startswith('#'):
+                    # line is commented, read next
+                    return self.handle_next_instruction()
+
                 # parse instruction
                 parts = line.split()
+
                 try:
                     command = parts[0]
                     address = int(parts[1], 16)

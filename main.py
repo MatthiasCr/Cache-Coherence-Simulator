@@ -4,16 +4,16 @@ from memory import Memory
 
 block_size = 16
 line_count = 4
-memory_traces_1 = 'memory_traces/man_cpu1'
-memory_traces_2 = 'memory_traces/man_cpu2'
+memory_traces_1 = 'memory_traces/man_cpu1.txt'
+memory_traces_2 = 'memory_traces/man_cpu2.txt'
 
 # initialize components
 memory = Memory(block_size)
 
-cache1 = Cache(line_count, block_size, memory)
+cache1 = Cache(1, line_count, block_size, memory)
 cpu1 = Cpu(1, memory_traces_1, cache1)
 
-cache2 = Cache(line_count, block_size, memory)
+cache2 = Cache(2, line_count, block_size, memory)
 cpu2 = Cpu(2, memory_traces_2, cache2)
 
 
