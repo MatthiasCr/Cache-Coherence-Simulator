@@ -66,18 +66,17 @@ class Cache:
         for line in self._lines:
             if line.use < target_line.use:
                 target_line = line
-        
 
         # write-back currently stored block if dirty
         if target_line.dirty and target_line.valid:
-            print(f"Cache{self._number} Writing-Back and dropping from cache: block {target_line.block:018x}")
+            print(f"Cache{self._number} Write-Back and evict block from cache: {target_line.block:018x}")
             self._memory.write_block(target_line.block, target_line.data)
         
         elif not target_line.dirty and target_line.valid:
-            print(f"Cache{self._number} Dropping from cache: block {target_line.block:018x}")
+            print(f"Cache{self._number} Evict block from cache: {target_line.block:018x}")
 
         # do the load
-        print(f"Cache{self._number} Loading into cache: {address:018x}")
+        print(f"Cache{self._number} Loading address into cache: {address:018x}")
         data = self._memory.read_block(address)
         target_line.block = address - (address % self._block_size)
         target_line.data = data
@@ -99,7 +98,7 @@ class Cache:
             other.use -= 1
 
     def print(self):
-        """overengineered pretty-printer for the cache lines"""
+        """overengineered pretty-printer for cache lines"""
         # calculate number of digits needed to print dynamic length values
         data_len = self._block_size * 2 + (self._block_size - 1)
         use_len = math.ceil(math.log(self._line_count, 16))     # LRU used number printed in hex

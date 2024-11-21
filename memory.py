@@ -47,7 +47,7 @@ class Memory:
     def print(self):
         data_len = self._block_size * 2 + (self._block_size - 1)
         print(f"\nMemory ({len(self._data)} blocks of {self._block_size} bytes each):")
-        print(f"\033[4m{'address':<18} | {'data':<{data_len}} \033[0m")        
+        print(f"\033[4m{'block':<18} | {'data':<{data_len}} \033[0m")        
         for key, value in sorted(self._data.items()):
             bytes_string = ' '.join(f"{byte:02x}" for byte in value)
             print(f"{key:018x} | {bytes_string}")

@@ -26,7 +26,8 @@ class Cpu:
         """this function is executed once in every cycle"""
 
         match self.state:
-            case CpuState.finished: 
+            case CpuState.finished:
+                print(f"CPU{self._number}: No more instructions") 
                 return            
             
             case CpuState.waiting_for_memory:
@@ -45,31 +46,33 @@ class Cpu:
 
             case CpuState.ready:
                 # read next instruction   
-                
-                line = self._traces_file.readline()
-
-                if not line:
-                    self.state = CpuState.finished
-                    return
-                
-                if line.startswith('#'):
-                    # line is commented, read next
-                    return self.handle_next_instruction()
+                while True:
+                    line = self._traces_file.readline()
+                    if not line:
+                        print(f"CPU{self._number}: No more instructions") 
+                        self.state = CpuState.finished
+                        return
+                    if line.startswith('#'):
+                        # line is commented, read next
+                        continue
+                    break
 
                 # parse instruction
                 parts = line.split()
-
                 try:
                     command = parts[0]
                     address = int(parts[1], 16)
                     assert(util.is_valid_address(address))
-                    assert(command == 'R' or command == 'W')
-
-                    if parts[0] == 'R':
-                        return self._handle_read(address)
-                    elif parts[0] == 'W':
-                        value = int(parts[2], 16)
-                        return self._handle_write(address, value)
+                    
+                    match command:
+                        case 'R':
+                            return self._handle_read(address)
+                        case 'W':
+                            value = int(parts[2], 16)
+                            return self._handle_write(address, value)
+                        case 'NOP':
+                            print(f"CPU{self._number}: NOP")
+                            return
                 except:
                     raise Exception("Traces File Syntax Error")
     
