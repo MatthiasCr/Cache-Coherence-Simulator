@@ -40,7 +40,7 @@ def handle_user_input():
 # 
 # Main Program Loop
 # 
-while not cpu1.state == CpuState.finished and not cpu2.state == CpuState.finished:
+while True:
     # each loop iteration represents 2 cycles
     # the cores operate in alternative cycles
     
@@ -49,6 +49,9 @@ while not cpu1.state == CpuState.finished and not cpu2.state == CpuState.finishe
 
     handle_user_input()
     cpu2.handle_next_instruction()
+
+    if cpu1.state == CpuState.finished and cpu2.state == CpuState.finished:
+        break
 
 print("All cores finished!")
 exit()
