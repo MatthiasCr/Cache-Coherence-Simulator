@@ -20,19 +20,20 @@ cpu2 = Cpu(2, memory_traces_2, cache2)
 def handle_user_input():
     try:
         user_input = input(">").strip()
-        if user_input == "":
-            # user pressed enter -> execute next cycle
-            return
-        elif user_input.lower() == "exit":
-            exit()
-        elif user_input.lower() == "cache1" or user_input.lower() == "c1":
-            cache1.print()
-        elif user_input.lower() == "cache2" or user_input.lower() == "c2":
-            cache2.print()
-        elif user_input.lower() == "memory" or user_input.lower() == "mem":
-            memory.print()
-        else:
-            print("Unknown command")
+        match user_input.lower():
+            case "":
+                # user pressed enter -> execute next cycle
+                return
+            case "exit":
+                exit()
+            case "cache1" | "c1":
+                cache1.print()
+            case "cache2" | "c2":
+                cache2.print()
+            case "memory" | "mem":
+                memory.print()
+            case _:
+                print("Unknown command")
         handle_user_input()
     except KeyboardInterrupt:
         exit()
