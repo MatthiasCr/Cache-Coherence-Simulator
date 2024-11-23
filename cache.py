@@ -14,10 +14,8 @@ class Line:
     def __init__(self, number, line_size):
         self.number = number            # internal cache line number
         self.block = 0x00               # which block is currently stored in this cache line
-        self.valid = False              # is data valid (or just not never set)
-        self.dirty = False              # for write-back: is cache more current than main memory
         self.state = LineState.invalid
-        self.use = 0                    # use-bits for LRU replacement. Highest possible = line_count
+        self.use = 0                    # use-bits for LRU replacement. Highest possible = line_count - 1
         self.data = [0] * line_size     # actual data. line_size is be same as main memory block size
 
 
@@ -30,7 +28,7 @@ class Cache:
         self._line_count = line_count                   
         self._block_size = block_size
         self._lines = [Line(number = i, line_size = block_size) for i in range(line_count)]
-        
+
     
     def cpu_read(self, address):
         offset = address % self._block_size
