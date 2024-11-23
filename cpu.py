@@ -10,9 +10,7 @@ class CpuState(Enum):
 
 
 class Cpu:
-    """
-    Class simulating a CPU/Core that executes memory traces
-    """
+    """Class simulating a CPU/Core that executes memory traces"""
 
     def __init__(self, number, file_path, cache :Cache):
         self._number = number                           # Number of CPU used for printing
@@ -20,7 +18,6 @@ class Cpu:
         self._traces_file = open(file_path, 'r')
         self.state = CpuState.ready
         self._waiting_cycles = 0                        # number of remaining cycles to wait
-        self._waiting_callback = None                   # function that is executed when core finished waiting
 
     def handle_next_instruction(self):
         """this function is executed once in every cycle"""
@@ -38,8 +35,6 @@ class Cpu:
                     return
                 elif self._waiting_cycles == 0:
                     # finally, the waiting is done :)
-                    # now execute the callback to load the data into cache and read/write it
-                    self._waiting_callback()
                     print(f"CPU{self._number}: Memory access completed")
                     self.state = CpuState.ready
                     return
@@ -59,53 +54,48 @@ class Cpu:
 
                 # parse instruction
                 parts = line.split()
-                try:
-                    command = parts[0]
-                    address = int(parts[1], 16)
-                    assert(util.is_valid_address(address))
-                    
-                    match command:
-                        case 'R':
-                            return self._handle_read(address)
-                        case 'W':
-                            value = int(parts[2], 16)
-                            return self._handle_write(address, value)
-                        case 'NOP':
-                            print(f"CPU{self._number}: NOP")
-                            return
-                except:
-                    raise Exception("Traces File Syntax Error")
+                command = parts[0]
+                
+                match command:
+                    case 'R':
+                        address = int(parts[1], 16)
+                        return self._handle_read(address)
+                    case 'W':
+                        address = int(parts[1], 16)
+                        value = int(parts[2], 16)
+                        return self._handle_write(address, value)
+                    case 'NOP':
+                        print(f"CPU{self._number}: NOP")
+                        return
     
 
     def _handle_read(self, address):
-        value = self._cache.read(address)
-        if value is None:
-            # READ MISS!
+        print(f"CPU{self._number}: Read {address:018x}")
+        value, hit, memory_access = self._cache.cpu_read(address)
+        if hit:
+            print(f"CPU{self._number}: Cache Hit! result: {value:#x} ")
+        else:
+            print(f"CPU{self._number}: Cache Miss!")
+            if memory_access:
+                print(f"CPU{self._number}: Have to access main memory now :(")
+                # skip next few cycles to simulate waiting for memory (even though it is already there)
+                # self.state = CpuState.waiting_for_memory
+                # self._waiting_cycles += 2
+                return
+            print(f"CPU{self._number}: Got the value from another cache :) result: {value:#x}")
 
-            self.state = CpuState.waiting_for_memory
-            self._waiting_cycles += 2
-            # callback gets executed when waiting is done.
-            self._waiting_callback = lambda: self._cache.load_from_memory(address)
-            print(f"CPU{self._number}: Read {address:018x} -> MISS!")
-            return
-        
-        # READ HIT!
-        print(f"CPU{self._number}: Read {address:018x} -> HIT! result: {value:#x} ")
-        return value
-    
+
     def _handle_write(self, address, value):
-        data = self._cache.write(address, value)
-        if data is None:
-            # WRITE MISS!
-
-            self.state = CpuState.waiting_for_memory
-            self._waiting_cycles += 2
-            # callback gets executed when waiting is done. 
-            # First load entire cache line into cache, then run cache.write() again to do the update
-            self._waiting_callback = lambda: (self._cache.load_from_memory(address), self._cache.write(address, value))
-            print(f"CPU{self._number}: Write {address:018x} value {value:#x} -> MISS!")
-            return
-        
-        # WRITE HIT!
-        print(f"CPU{self._number}: Write {address:018x} value {value:#x} -> HIT!")
-        return
+        print(f"CPU{self._number}: Write {address:018x} value {value:#x}")
+        hit, memory_access = self._cache.cpu_write(address, value)
+        if hit:
+            print(f"CPU{self._number}: Cache Hit! Write Completed")
+        else:
+            print(f"CPU{self._number}: Cache Miss!")
+            if memory_access:
+                print(f"CPU{self._number}: Have to access main memory now :(")
+                # skip next few cycles to simulate waiting for memory (even though it is already there)
+                # self.state = CpuState.waiting_for_memory
+                # self._waiting_cycles += 2
+                return
+            print(f"CPU{self._number}: Got the value from another cache :) Write Completed")
