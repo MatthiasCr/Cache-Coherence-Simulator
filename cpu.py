@@ -69,7 +69,7 @@ class Cpu:
 
 
     def _handle_read(self, address):
-        print(f"CPU{self._number}: Read {address:018x}")
+        print(f"CPU{self._number}: Read from {address:#x}")
         try:
             value, hit = self._cache.cpu_read(address)
         except PendingTransactionException:
@@ -92,7 +92,7 @@ class Cpu:
 
 
     def _handle_write(self, address, value):
-        print(f"CPU{self._number}: Write {address:018x} value {value:#x}")
+        print(f"CPU{self._number}: Write to {address:#x} value {value:#x}")
         try:
             hit = self._cache.cpu_write(address, value)
         except PendingTransactionException:

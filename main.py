@@ -2,21 +2,26 @@ from bus import Bus
 from cpu import Cpu, CpuState
 from cache import Cache
 from memory import Memory
+from pathlib import Path
+
 
 block_size = 8
 line_count = 3
-memory_traces_1 = 'memory_traces/man_cpu1.txt'
-memory_traces_2 = 'memory_traces/man_cpu2.txt'
+
+base_dir = Path(__file__)
+memory_traces_1 = base_dir / '..' / 'memory_traces' / 'exp_cpu1.txt'
+memory_traces_2 = base_dir / '..' / 'memory_traces' / 'exp_cpu2.txt'
+
 
 # initialize components
 memory = Memory(block_size)
 bus = Bus()
 
 cache1 = Cache(1, line_count, block_size, bus)
-cpu1 = Cpu(1, memory_traces_1, cache1)
+cpu1 = Cpu(1, memory_traces_1.resolve(), cache1)
 
 cache2 = Cache(2, line_count, block_size, bus)
-cpu2 = Cpu(2, memory_traces_2, cache2)
+cpu2 = Cpu(2, memory_traces_2.resolve(), cache2)
 
 bus.connect_memory(memory)
 bus.connect_cache(cache1)

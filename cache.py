@@ -130,9 +130,9 @@ class Cache:
                 # To transiion back to shared/invalid, write-back the modified value to main memory
                 message = BusMessage(BusMessageType.write, line.block, line.data)
                 self._bus.put_message(self, message)
-
-                # Since I have a modified value it is crucial to respond to ensure
-                # the other cache does not use the stale copy from main memory.
+                    
+                # respond with modified block to ensure the other cache does not use 
+                # the stale copy from main memory.
                 return copy.copy(line.data)
             
     
