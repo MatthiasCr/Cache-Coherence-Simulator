@@ -1,6 +1,6 @@
-import copy
-from enum import Enum
 from bus import Bus, BusMessage, BusMessageType
+from enum import Enum
+import copy
 import math
 
 class PendingTransactionException(Exception):

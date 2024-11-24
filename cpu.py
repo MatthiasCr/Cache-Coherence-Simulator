@@ -1,6 +1,5 @@
 from cache import Cache, PendingTransactionException
 from enum import Enum
-from memory import Memory
 
 class CpuState(Enum):
     ready = 0
@@ -43,6 +42,7 @@ class Cpu:
 
             case CpuState.ready:
                 if self._retry_last_instruction:
+                    print(f"CPU{self._number}: Retrying last instruction") 
                     self._retry_last_instruction = False
                 else:
                     # read next instruction
@@ -75,7 +75,7 @@ class Cpu:
         except PendingTransactionException:
             self._retry_last_instruction = 1
             print(f"CPU{self._number}: Cache Miss!")
-            print(f"CPU{self._number}: Resource is blocked by pending instruction. Retry next cycle")
+            print(f"CPU{self._number}: Resource is blocked by pending instruction. Abort")
             return
 
         if hit:
@@ -98,7 +98,7 @@ class Cpu:
         except PendingTransactionException:
             self._retry_last_instruction = 1
             print(f"CPU{self._number}: Cache Miss!")
-            print(f"CPU{self._number}: Resource is blocked by pending instruction. Retry next cycle")
+            print(f"CPU{self._number}: Resource is blocked by pending instruction. Abort")
             return
 
         if hit:

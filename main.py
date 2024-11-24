@@ -38,15 +38,24 @@ def handle_user_input():
                 cache2.print()
             case "memory" | "mem":
                 memory.print()
+            case "help":
+                print_help()
             case _:
                 print("Unknown command")
         handle_user_input()
     except KeyboardInterrupt:
         exit()
 
+def print_help():
+    print("Press ENTER to step to next cycle")
+    print("Type c1 or c2 to print caches")
+    print("Type mem to print memory")
+
+
 # 
 # Main Program Loop
 # 
+print_help()
 while True:
     # each loop iteration represents 2 cycles
     # the cores operate in alternative cycles
