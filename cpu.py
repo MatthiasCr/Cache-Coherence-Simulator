@@ -1,7 +1,6 @@
-from cache import Cache
+from cache import Cache, PendingTransactionException
 from enum import Enum
 from memory import Memory
-import util
 
 class CpuState(Enum):
     ready = 0
@@ -16,6 +15,8 @@ class Cpu:
         self._number = number                           # Number of CPU used for printing
         self._cache = cache
         self._traces_file = open(file_path, 'r')
+        self._current_instruction = None
+        self._retry_last_instruction = False
         self.state = CpuState.ready
         self._waiting_cycles = 0                        # number of remaining cycles to wait
 
@@ -25,38 +26,36 @@ class Cpu:
         match self.state:
             case CpuState.finished:
                 print(f"CPU{self._number}: No more instructions") 
-                return            
+                return
             
             case CpuState.waiting_for_memory:
                 if self._waiting_cycles > 0:
-                    # skip cycle to simulate waiting for memory access
+                    # skip cycle
                     self._waiting_cycles -= 1
                     print(f"CPU{self._number}: Waiting for Memory")
                     return
                 elif self._waiting_cycles == 0:
-                    # finally, the waiting is done :)
+                    # waiting is done, cache is ready now
+                    self._cache.clear_pending()
                     print(f"CPU{self._number}: Memory access completed")
                     self.state = CpuState.ready
                     return
 
             case CpuState.ready:
-                # read next instruction   
-                while True:
+                if self._retry_last_instruction:
+                    self._retry_last_instruction = False
+                else:
+                    # read next instruction
                     line = self._traces_file.readline()
                     if not line:
                         print(f"CPU{self._number}: No more instructions") 
                         self.state = CpuState.finished
                         return
-                    if line.startswith('#'):
-                        # line is commented, read next
-                        continue
-                    break
+                    self._current_instruction = line
 
                 # parse instruction
-                parts = line.split()
-                command = parts[0]
-                
-                match command:
+                parts = self._current_instruction.split()
+                match parts[0]:
                     case 'R':
                         address = int(parts[1], 16)
                         return self._handle_read(address)
@@ -67,35 +66,49 @@ class Cpu:
                     case 'NOP':
                         print(f"CPU{self._number}: NOP")
                         return
-    
+
 
     def _handle_read(self, address):
         print(f"CPU{self._number}: Read {address:018x}")
-        value, hit, memory_access = self._cache.cpu_read(address)
+        try:
+            value, hit = self._cache.cpu_read(address)
+        except PendingTransactionException:
+            self._retry_last_instruction = 1
+            print(f"CPU{self._number}: Cache Miss!")
+            print(f"CPU{self._number}: Resource is blocked by pending instruction. Retry next cycle")
+            return
+
         if hit:
             print(f"CPU{self._number}: Cache Hit! result: {value:#x} ")
         else:
             print(f"CPU{self._number}: Cache Miss!")
-            if memory_access:
-                print(f"CPU{self._number}: Have to access main memory now :(")
+            if self._cache._pending_line:
+                print(f"CPU{self._number}: Waiting for Memory")
                 # skip next few cycles to simulate waiting for memory (even though it is already there)
-                # self.state = CpuState.waiting_for_memory
-                # self._waiting_cycles += 2
+                self.state = CpuState.waiting_for_memory
+                self._waiting_cycles += 2
                 return
-            print(f"CPU{self._number}: Got the value from another cache :) result: {value:#x}")
+            print(f"CPU{self._number}: Received the block from another cache :) result: {value:#x}")
 
 
     def _handle_write(self, address, value):
         print(f"CPU{self._number}: Write {address:018x} value {value:#x}")
-        hit, memory_access = self._cache.cpu_write(address, value)
+        try:
+            hit = self._cache.cpu_write(address, value)
+        except PendingTransactionException:
+            self._retry_last_instruction = 1
+            print(f"CPU{self._number}: Cache Miss!")
+            print(f"CPU{self._number}: Resource is blocked by pending instruction. Retry next cycle")
+            return
+
         if hit:
             print(f"CPU{self._number}: Cache Hit! Write Completed")
         else:
             print(f"CPU{self._number}: Cache Miss!")
-            if memory_access:
-                print(f"CPU{self._number}: Have to access main memory now :(")
+            if self._cache._pending_line:
+                print(f"CPU{self._number}: Waiting for Memory")
                 # skip next few cycles to simulate waiting for memory (even though it is already there)
-                # self.state = CpuState.waiting_for_memory
-                # self._waiting_cycles += 2
+                self.state = CpuState.waiting_for_memory
+                self._waiting_cycles += 2
                 return
-            print(f"CPU{self._number}: Got the value from another cache :) Write Completed")
+            print(f"CPU{self._number}: Received the block from another cache :) Write Completed")

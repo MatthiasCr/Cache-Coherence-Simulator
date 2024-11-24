@@ -3,6 +3,9 @@ from enum import Enum
 from bus import Bus, BusMessage, BusMessageType
 import math
 
+class PendingTransactionException(Exception):
+    pass
+
 class LineState(Enum):
     invalid = 0,
     shared = 1,
@@ -15,7 +18,8 @@ class Line:
         self.number = number            # internal cache line number
         self.block = 0x00               # which block is currently stored in this cache line
         self.state = LineState.invalid
-        self.use = 0                    # use-bits for LRU replacement. Highest possible = line_count - 1
+        self.use = 0                    # use-bits for LRU replacement. The line with highest is most recently used
+        self.pending = False              
         self.data = [0] * line_size     # actual data. line_size is be same as main memory block size
 
 
@@ -28,9 +32,10 @@ class Cache:
         self._line_count = line_count                   
         self._block_size = block_size
         self._lines = [Line(number = i, line_size = block_size) for i in range(line_count)]
+        self._pending_line = None
 
     
-    def cpu_read(self, address):
+    def cpu_read(self, address) -> tuple[int, bool]:
         offset = address % self._block_size
         block = address - offset
         line = self._find_block(block)            
@@ -40,32 +45,26 @@ class Cache:
             hit = False
             message = BusMessage(BusMessageType.read, block)
             data, memory_access = self._bus.put_message(self, message)
-            line = self._load_block(block, data)
+            line = self._store(block, data)
             if not memory_access:
-                # data came from other cache!
+                # data came not from main memory, but from other cache!
                 line.state = LineState.shared
             else:
                 # no other cache has block
                 line.state = LineState.exclusive
+                # to simulate that it will take a while to load the value from main memory
+                # we mark it pending for a few cycles (even though it is already there)
+                line.pending = True
+                self._pending_line = line
         else:
             # READ HIT
             hit = True
-            memory_access = False
 
         self._updated_use_bits(line)
-        # notify cpu if there was memory access so it can skip the next few cycles to simulate waiting
-        return line.data[offset], hit, memory_access
+        return line.data[offset], hit
 
-
-        # is block in cache?
-            # Yes -> read hit: return value, state stays the same (S/E/M)
-            # No (state invalid)
-                # put READ on Bus
-                    # bus sends message to other caches
-                    # if one responds with a value, bus returns this value
-                    # if no one answers, load from memory (and signal cpu to wait the next cycles)
     
-    def cpu_write(self, address, value):
+    def cpu_write(self, address, value) -> bool:
         offset = address % self._block_size
         block = address - offset
         line = self._find_block(block)     
@@ -75,69 +74,70 @@ class Cache:
             hit = False
             message = BusMessage(BusMessageType.read_w, block, value)
             data, memory_access = self._bus.put_message(self, message)
-            line = self._load_block(block, data)
+            line = self._store(block, data)
+            if memory_access:
+                # to simulate that it will take a while to load the value from main memory
+                # we mark it pending for a few cycles (even though it is already there)
+                line.pending = True
+                self._pending_line = line
         else:
             # WRITE HIT
             hit = True
-            memory_access = False
             if line.state == LineState.shared:
-                # we dont have the block exclusive yet, invalidate the other caches
+                # signal other cores that I want to write
                 message = BusMessage(BusMessageType.upgr, block, value)
                 self._bus.put_message(self, message)
 
         line.state = LineState.modified
         line.data[offset] = value
-        return hit, memory_access
+        return hit
 
-        # is block in cache?
-            # Yes -> write hit
-                # what state has this block?
-                    # Modified -> do the write and return, state stays the same
-                    # Exclusive -> do the write and transition to Modified
-                    # Shared -> put UPGR on the Bus. Do the write and transition to Modified
-            # No (state invalid)
-                # put READX on the Bus
-                    # value comes either from memory or from other cache
-                    # than do the write and transition to Modified
-        return
 
     def react_to_bus(self, message :BusMessage):
-        """snoop on messages on bus and react by changing state and maybe also responding with requested data"""
+        """snoop messages on bus and react by changing state and maybe respond with requested data"""
 
         line = self._find_block(message.block)
         if not line or line.state == LineState.invalid:
-            # cache dont has this block (anymore), no need to do anything
+            # Cache dont has this block, no action required
             return
         
-        if line.state == LineState.shared:
-            if message.type == BusMessageType.upgr:
-                # someone else wants to write, therefore invalidate own copy
-                line.state = LineState.invalid
-                return
+        if line.pending:
+            # This cache is currently in the process of retrieving this block from main memory!
+            # The sender has to wait until this transaction is finished and try again then.
+            # The sender's CPU will catch this Exception, abort the instruction, and try again the next cycles.
+            raise PendingTransactionException()
         
-        elif line.state == LineState.exclusive or line.state == LineState.modified:
-            # currently I am an exclusive owner
-            if message.type == BusMessageType.read:
-                line.state = LineState.shared
-            elif message.type == BusMessageType.read_w:
-                line.state = LineState.invalid
-            # respond with block so that other cache gets most current value
-            return copy.copy(line.data)
+        match line.state:
+            case LineState.shared:
+                if message.type == BusMessageType.upgr:
+                    # sender wants to write on a shared block, therefore invalidate own copy
+                    line.state = LineState.invalid
+                    return
 
-                # What state has this block?
-                    # Shared
-                        # If READ -> do nothing, still shared
-                        # If UPGR -> transition to invalid
-                    # Exclusive
-                        # If READ -> transition to shared & ANSWER WITH BLOCK
-                        # If REAEDX -> transition to invalid & ANSWER WITH BLOCK
-                    # Modified
-                        # If READ -> transition to shared & ANSWER WITH BLOCK
-                        # If READX -> transition to invalid & ANSWER WITH BLOCK
+            case LineState.exclusive:
+                if message.type == BusMessageType.read:
+                    line.state = LineState.shared
+                elif message.type == BusMessageType.read_w:
+                    line.state = LineState.invalid
+                return copy.copy(line.data)
 
+            case LineState.modified:
+                if message.type == BusMessageType.read:
+                    line.state = LineState.shared
+                elif message.type == BusMessageType.read_w:
+                    line.state = LineState.invalid
+                
+                # To transiion back to shared/invalid, write-back the modified value to main memory
+                message = BusMessage(BusMessageType.write, line.block, line.data)
+                self._bus.put_message(self, message)
+
+                # Since I have a modified value it is crucial to respond to ensure
+                # the other cache does not use the stale copy from main memory.
+                return copy.copy(line.data)
+            
     
-    def _load_block(self, block, data):
-        """loads block that contains the address from memory and stores in cache"""
+    def _store(self, block, data):
+        """stores given block in a cacheline"""
 
         # choose line to replace (LRU)
         target_line = self._lines[0]
@@ -159,6 +159,7 @@ class Cache:
         self._updated_use_bits(target_line)
         return target_line
     
+    
     def _find_block(self, block):
         # since cache is fully associative, block can be stored in any cacheline
         for line in self._lines:
@@ -168,7 +169,7 @@ class Cache:
 
 
     def _updated_use_bits(self, line :Line):
-        """sets line as the most recently used line and adjusts the use bit of all other lines accordingly"""
+        """sets given line as the most recently used line and adjusts the use bits of all other lines accordingly"""
         if line.use == self._line_count - 1:
             # line is already marked as most recently used
             return
@@ -179,6 +180,9 @@ class Cache:
                 continue
             other.use -= 1
 
+    def clear_pending(self):
+        self._pending_line.pending = False
+        self._pending_line = None
 
     def print(self):
         """overengineered pretty-printer for cache lines"""
@@ -188,8 +192,8 @@ class Cache:
         nr_len = math.ceil(math.log(self._line_count, 10))      # number of line printed in decimal
         
         print(f"\nCache{self._number} ({len(self._lines)} lines of {self._block_size} bytes each):")
-        print(f"\033[4m{' ':<{nr_len}} | {'stored block':<18} | state {'u':<{use_len}} | {'data':<{data_len}}\033[0m")
+        print(f"\033[4m{' ':<{nr_len}} | {'stored block':<18} | state p {'u':<{use_len}} | {'data':<{data_len}}\033[0m")
         for line in self._lines:
             bytes_string = ' '.join(f"{byte:02x}" for byte in line.data)
-            print(f"{line.number:>0{nr_len}} | {line.block:018x} | {line.state.name[0:5].upper():<5} {line.use:>0{use_len}x} | {bytes_string}")
+            print(f"{line.number:>0{nr_len}} | {line.block:018x} | {line.state.name[0:5].upper():<5} {line.pending:b} {line.use:>0{use_len}x} | {bytes_string}")
         print()

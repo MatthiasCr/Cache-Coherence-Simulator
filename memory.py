@@ -17,20 +17,15 @@ class Memory:
 
     def read_block(self, address):
         """read block from memory that contains the address"""
-        
         block_nr = self._get_block_nr(address)
 
         if block_nr not in self._data:
             # if block is accessed the first time, initialize randomly
             self._initialize_block(block_nr)
-        
-        # make sure to return a copy of the array and NOT just the reference!
-        # the caches need own copies so that they can make changes (and write them back later)
         return copy.copy(self._data[block_nr])
     
     def write_block(self, address, data):
         """write block to memory that contains the address"""
-        
         self._data[self._get_block_nr(address)] = data
 
     def _initialize_block(self, block_nr):

@@ -35,11 +35,11 @@ class Bus:
         # first broadcast message to all connected caches so they can snoop it and maybe respond
         data = self._notify_listeners(sender, message)
 
-        memory_access = False
-
         match message.type:
             case BusMessageType.read | BusMessageType.read_w:
+                memory_access = False
                 if not data:
+                    # no other cache has requested value, need to access main memory
                     memory_access = True
                     data = self._memory.read_block(message.block)
                 return data, memory_access
@@ -54,14 +54,11 @@ class Bus:
 
 
     def _notify_listeners(self, sender, message :BusMessage):
-        data = None
+        response = None
         for cache in self._caches:
             if cache == sender:
                 continue
-            # in case of 2 caches, there is only one cache to notify (either has data to respond or not)
-            # in case of more caches, some may respond and some not. If there are
-            # multiple responses, these responses should be the same (shared).
-            response = cache.react_to_bus(message)
-            if response:
-                data = response
-        return data
+            res = cache.react_to_bus(message)
+            if res:
+                response = res
+        return response
