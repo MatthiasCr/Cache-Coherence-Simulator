@@ -73,7 +73,7 @@ class Cpu:
         try:
             value, hit = self._cache.cpu_read(address)
         except PendingTransactionException:
-            self._retry_last_instruction = 1
+            self._retry_last_instruction = True
             print(f"CPU{self._number}: Cache Miss!")
             print(f"CPU{self._number}: Resource is blocked by pending instruction. Abort")
             return
@@ -96,7 +96,7 @@ class Cpu:
         try:
             hit = self._cache.cpu_write(address, value)
         except PendingTransactionException:
-            self._retry_last_instruction = 1
+            self._retry_last_instruction = True
             print(f"CPU{self._number}: Cache Miss!")
             print(f"CPU{self._number}: Resource is blocked by pending instruction. Abort")
             return

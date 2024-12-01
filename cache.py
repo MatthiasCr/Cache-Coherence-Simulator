@@ -19,8 +19,8 @@ class Line:
         self.block = 0x00               # which block is currently stored in this cache line
         self.state = LineState.invalid
         self.use = 0                    # use-bits for LRU replacement. The line with highest is most recently used
-        self.pending = False              
-        self.data = [0] * line_size     # actual data. line_size is be same as main memory block size
+        self.pending = False            # True if the data is currently being retrieved from memory
+        self.data = [0] * line_size     # actual data. line_size is same as main memory block size
 
 
 class Cache:
@@ -84,7 +84,7 @@ class Cache:
             # WRITE HIT
             hit = True
             if line.state == LineState.shared:
-                # signal other cores that I want to write
+                # signal other cores that I want the block exclusive to write on it
                 message = BusMessage(BusMessageType.upgr, block, value)
                 self._bus.put_message(self, message)
 
@@ -127,7 +127,7 @@ class Cache:
                 elif message.type == BusMessageType.read_w:
                     line.state = LineState.invalid
                 
-                # To transiion back to shared/invalid, write-back the modified value to main memory
+                # Since the line is modified it has to be written-back to main memory
                 message = BusMessage(BusMessageType.write, line.block, line.data)
                 self._bus.put_message(self, message)
                     
@@ -191,7 +191,7 @@ class Cache:
         use_len = math.ceil(math.log(self._line_count, 16))     # LRU used number printed in hex
         nr_len = math.ceil(math.log(self._line_count, 10))      # number of line printed in decimal
         
-        print(f"\nCache{self._number} ({len(self._lines)} lines of {self._block_size} bytes each):")
+        print(f"\nCache{self._number}")# ({len(self._lines)} lines of {self._block_size} bytes each):")
         print(f"\033[4m{' ':<{nr_len}} | {'stored block':<18} | state p {'u':<{use_len}} | {'data':<{data_len}}\033[0m")
         for line in self._lines:
             bytes_string = ' '.join(f"{byte:02x}" for byte in line.data)

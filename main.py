@@ -9,8 +9,8 @@ block_size = 8
 line_count = 3
 
 base_dir = Path(__file__)
-memory_traces_1 = base_dir / '..' / 'memory_traces' / 'exp_cpu1.txt'
-memory_traces_2 = base_dir / '..' / 'memory_traces' / 'exp_cpu2.txt'
+memory_traces_1 = base_dir / '..' / 'memory_traces' / 'traces_cpu1.txt'
+memory_traces_2 = base_dir / '..' / 'memory_traces' / 'traces_cpu2.txt'
 
 
 # initialize components
@@ -52,6 +52,7 @@ def handle_user_input():
         exit()
 
 def print_help():
+    print(f"Using {block_size} bytes block size and {line_count} lines per cache")
     print("Press ENTER to step to next cycle")
     print("Type c1 or c2 to print caches")
     print("Type mem to print memory")
