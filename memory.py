@@ -47,23 +47,3 @@ class Memory:
             bytes_string = ' '.join(f"{byte:02x}" for byte in value)
             print(f"{key:018x} | {bytes_string}")
         print()
-    
-
-    # the following functions are only included for debugging purposes
-    # reading/writing single bytes is never used in the project, since the cache only reads/writes entire blocks
-    def read_byte(self, address):
-        """read single byte from memory"""
-        if self._get_block_nr(address) not in self._data:
-            self._initialize_block(self._get_block_nr(address))
-        
-        block = self._data[self._get_block_nr(address)]
-        return block[address % self._block_size]
-
-    def write_byte(self, address, value):
-        """write single byte to memory"""
-        block_nr = self._get_block_nr(address)
-        if block_nr not in self._data:
-            self._initialize_block(block_nr)
-        block = self._data[block_nr]
-        block[address % self._block_size] = value
-        self._data[block_nr] = block
