@@ -1,7 +1,7 @@
-from bus import Bus
-from cpu import Cpu, CpuState
-from cache import Cache
-from memory import Memory
+from src.bus import Bus
+from src.cpu import Cpu, CpuState
+from src.cache import Cache
+from src.memory import Memory
 from pathlib import Path
 
 

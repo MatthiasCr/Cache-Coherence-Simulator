@@ -1,4 +1,4 @@
-from bus import Bus, BusMessage, BusMessageType
+from src.bus import Bus, BusMessage, BusMessageType
 from enum import Enum
 import copy
 import math

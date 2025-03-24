@@ -1,4 +1,4 @@
-from memory import Memory
+from src.memory import Memory
 from enum import Enum
 
 class BusMessageType(Enum):
