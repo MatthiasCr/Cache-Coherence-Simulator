@@ -6,7 +6,7 @@ This command line simulator simulates two cores with own caches executing memory
 
 ## Usage
 
-The simulator executes memory traces for both cores. Possible operations include reading and writing single bytes. They should have the following format with addresses and value in hexadecimal:
+The simulator executes memory traces for both cores. Possible operations include reading and writing single bytes. They should have the following format with addresses and values in hexadecimal:
 
 ```
 R [addr]            # read byte at [addr] 
