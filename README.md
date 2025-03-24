@@ -2,7 +2,7 @@ This was an exercise as part of the lecture "Large Scale Systems Architecture" a
 
 ## About
 
-This command line simulator simulates two cores with own caches executing memory traces. The caches are **fully associative** and **write-back**. Furthermore, they use **least recently used (LRU)** as replacement strategy. For cache coherence this simulator implements the [MESI](https://de.wikipedia.org/wiki/MESI) protocol that is based on a snooping bus.
+This command line simulator simulates two cores with own caches executing memory traces. The caches are **fully associative** and **write-back**. Furthermore, they use **least recently used (LRU)** as replacement strategy. For cache coherence this simulator implements the [MESI](https://de.wikipedia.org/wiki/MESI) protocol that is **write-invalidate** and based on a snooping bus.
 
 ## Usage
 
